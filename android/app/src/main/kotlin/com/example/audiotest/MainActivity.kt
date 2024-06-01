@@ -12,10 +12,13 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import org.jtransforms.fft.DoubleFFT_1D
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.sqrt
 
 class MainActivity : FlutterActivity() {
 
@@ -78,7 +81,7 @@ class MainActivity : FlutterActivity() {
         val recordingInProgress = AtomicBoolean(false)
         var recorder: AudioRecord? = null
         private var recordingThread: Thread? = null
-        var data = CopyOnWriteArrayList<Byte>()
+        val data = AtomicInteger()
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
@@ -87,14 +90,14 @@ class MainActivity : FlutterActivity() {
                 override fun run() {
                     handler.post {
                         counter++
-                        eventSink?.success(data.toList().toString())
+                        eventSink?.success(data.get().toString())
                     }
                     handler.postDelayed(this, 100)
 
-                    if (counter > 600 && recordingInProgress.get()) {
-                        stopRecording()
-                    }
-                    if (counter in 101..599 && !recordingInProgress.get()) {
+//                    if (counter > 600 && recordingInProgress.get()) {
+//                        stopRecording()
+//                    }
+                    if (counter > 21 && !recordingInProgress.get()) {
                         startRecording()
                     }
                 }
@@ -146,8 +149,7 @@ class MainActivity : FlutterActivity() {
                                         getBufferReadFailureReason(result)
                             )
                         }
-                        data.clear()
-                        data.addAll(buffer.array().toList().take(10))
+                        data.set(fft(buffer.array()))
                         buffer.clear()
                     }
                 } catch (e: IOException) {
@@ -163,6 +165,45 @@ class MainActivity : FlutterActivity() {
                     AudioRecord.ERROR -> "ERROR"
                     else -> "Unknown ($errorCode)"
                 }
+            }
+
+            // https://stackoverflow.com/questions/21799625/low-pass-android-pcm-audio-data
+
+            private fun fft(data: ByteArray): Int {
+                val bufferSize = BUFFER_SIZE
+                val fft1d = DoubleFFT_1D(bufferSize.toLong())
+//                val window = DoubleArray(bufferSize)
+                var binNo = 0
+
+//                for (i in 0 until bufferSize) {
+//                    window[i] = ((1 - Math.cos(i*2*Math.PI/bufferSize-1))/2)
+//                    data[i] = (data[i] * window[i]).toInt().toByte()
+//                }
+                val fftBuffer = DoubleArray(bufferSize * 2)
+
+                for (i in 0 until bufferSize) {
+                    fftBuffer[2*i] = data[i].toDouble();
+                    fftBuffer[2*i+1] = 0.toDouble()
+                }
+                fft1d.complexForward(fftBuffer);
+                val magnitude = DoubleArray(bufferSize / 2)
+                var maxVal = 0
+
+                for (i in 0 until bufferSize/2) {
+                    val real = fftBuffer[2*i];
+                    val imaginary = fftBuffer[2*i + 1];
+                    magnitude[i] = sqrt( real*real + imaginary*imaginary );
+
+                    for (j in 0 until bufferSize/2) {
+                        if(magnitude[i] > maxVal){
+                            maxVal = magnitude[i].toInt()
+                            binNo = i
+                        }
+                    }
+                }
+                val freq = 8000 * binNo/(bufferSize/2)
+                Log.i("freq","" + freq + "Hz");
+                return freq
             }
         }
     }
