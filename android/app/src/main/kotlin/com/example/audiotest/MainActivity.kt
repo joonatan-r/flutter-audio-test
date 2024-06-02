@@ -84,6 +84,7 @@ class MainActivity : FlutterActivity() {
         private var recordingThread: Thread? = null
         val data = AtomicInteger()
         val data2 = AtomicInteger()
+        val data3 = AtomicInteger()
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
@@ -94,7 +95,9 @@ class MainActivity : FlutterActivity() {
                 @SuppressLint("DefaultLocale")
                 override fun run() {
                     handler.post {
-                        eventSink?.success("${sampleToHz(data.get())}\n${sampleToHz(data2.get())}")
+                        eventSink?.success(
+                            "${sampleToHz(data.get())}\n${sampleToHz(data2.get())}\n${sampleToHz(data3.get())}"
+                            )
                     }
                     handler.postDelayed(this, 100)
 
@@ -169,9 +172,10 @@ class MainActivity : FlutterActivity() {
                         }
                         val shortBuffer = ShortArray(bufferSize)
                         buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortBuffer)
-                        val (first, second) = findLargestMagnitudeSample(shortBuffer)
+                        val (first, second, third) = findLargestMagnitudeSample(shortBuffer)
                         data.set(first)
                         data2.set(second)
+                        data3.set(third)
                         buffer.clear()
                         Thread.sleep(20)
                     }
@@ -198,8 +202,10 @@ class MainActivity : FlutterActivity() {
                 val magnitude = DoubleArray(bufferSize * 2)
                 var maxVal = 0.toDouble()
                 var maxVal2 = 0.toDouble()
+                var maxVal3 = 0.toDouble()
                 var binNo = 0
                 var binNo2 = 0
+                var binNo3 = 0
 
                 for (i in 0 until bufferSize) {
                     val windowVal = 1 - cos(i * 2 * Math.PI / (data.size - 1))
@@ -228,7 +234,13 @@ class MainActivity : FlutterActivity() {
                         binNo2 = i
                     }
                 }
-                return arrayOf(binNo, binNo2)
+                for (i in magnitude.indices) {
+                    if (magnitude[i] < maxVal && magnitude[i] < maxVal2 && magnitude[i] > maxVal3) {
+                        maxVal3 = magnitude[i]
+                        binNo3 = i
+                    }
+                }
+                return arrayOf(binNo, binNo2, binNo3)
             }
         }
     }
