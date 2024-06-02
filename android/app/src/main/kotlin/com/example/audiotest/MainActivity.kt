@@ -18,6 +18,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.cos
 import kotlin.math.sqrt
 
 class MainActivity : FlutterActivity() {
@@ -82,8 +83,6 @@ class MainActivity : FlutterActivity() {
         var recorder: AudioRecord? = null
         private var recordingThread: Thread? = null
         val data = AtomicInteger()
-        val data2 = AtomicInteger()
-        val data3 = AtomicInteger()
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
@@ -92,7 +91,7 @@ class MainActivity : FlutterActivity() {
                 override fun run() {
                     handler.post {
                         counter++
-                        eventSink?.success("${data.get()}\n${data2.get()}\n${data3.get()}")
+                        eventSink?.success("${data.get()}")
                     }
                     handler.postDelayed(this, 100)
 
@@ -140,6 +139,11 @@ class MainActivity : FlutterActivity() {
         }
 
         class RecordingRunnable : Runnable {
+
+            private val bufferSize = BUFFER_SIZE / 2
+            private val fft1d = DoubleFFT_1D(bufferSize.toLong())
+            private val fft1dForInv = DoubleFFT_1D((bufferSize / 2).toLong())
+
             override fun run() {
                 try {
                     val buffer = ByteBuffer.allocateDirect(BUFFER_SIZE)
@@ -151,12 +155,10 @@ class MainActivity : FlutterActivity() {
                                         getBufferReadFailureReason(result)
                             )
                         }
-                        val shortBuffer = ShortArray(BUFFER_SIZE / 2)
+                        val shortBuffer = ShortArray(bufferSize)
                         buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortBuffer)
-                        val (freq, freq2, freq3) = fft(shortBuffer)
+                        val freq = fft(shortBuffer)
                         data.set(freq)
-                        data2.set(freq2)
-                        data3.set(freq3)
                         buffer.clear()
                         Thread.sleep(20)
                     }
@@ -177,61 +179,39 @@ class MainActivity : FlutterActivity() {
 
             // https://stackoverflow.com/questions/21799625/low-pass-android-pcm-audio-data
 
-            private fun fft(data: ShortArray): Array<Int> {
-                val bufferSize = BUFFER_SIZE / 2
-                val fft1d = DoubleFFT_1D(bufferSize.toLong())
-                val magnitude = DoubleArray(bufferSize / 2)
-//                val window = DoubleArray(bufferSize)
-                var maxVal = 0.toDouble()
-                var maxVal2 = 0.toDouble()
-                var maxVal3 = 0.toDouble()
-                var binNo = 0
-                var binNo2 = 0
-                var binNo3 = 0
+            // https://stackoverflow.com/questions/4225432/how-to-compute-frequency-of-data-using-fft
 
-//                for (i in 0 until bufferSize) {
-//                    window[i] = ((1 - Math.cos(i*2*Math.PI/bufferSize-1))/2)
-//                    data[i] = (data[i] * window[i]).toInt().toByte()
-//                }
+            private fun fft(data: ShortArray): Int {
                 val fftBuffer = DoubleArray(bufferSize * 2)
+                val magnitude = DoubleArray(bufferSize)
+                var maxVal = 0.toDouble()
+                var binNo = 0
 
                 for (i in 0 until bufferSize) {
+                    val windowVal = 1 - cos(i * 2 * Math.PI / (data.size - 1))
+                    data[i] = (data[i] * windowVal).toInt().toShort()
                     fftBuffer[2 * i] = data[i].toDouble()
                     fftBuffer[2 * i + 1] = 0.toDouble()
                 }
                 fft1d.complexForward(fftBuffer)
 
-                for (i in 0 until bufferSize / 2) {
+                for (i in 0 until bufferSize) {
                     val real = fftBuffer[2 * i]
                     val imaginary = fftBuffer[2 * i + 1]
-                    magnitude[i] = sqrt( real * real + imaginary * imaginary )
+                    magnitude[i] = real * real + imaginary * imaginary
                 }
-                for (i in 0 until bufferSize / 2) {
-                    if (
-                        magnitude[i] > maxVal
-                    ) {
+                fft1dForInv.complexInverse(magnitude, false)
+
+                for (i in magnitude.indices) {
+                    if (magnitude[i] > maxVal) {
                         maxVal = magnitude[i]
                         binNo = i
-                    } else if (
-                        magnitude[i] > maxVal2
-                    ) {
-                        maxVal2 = magnitude[i]
-                        binNo2 = i
-                    } else if (
-                        magnitude[i] > maxVal3
-                    ) {
-                        maxVal3 = magnitude[i]
-                        binNo3 = i
                     }
                 }
-                val freq = SAMPLING_RATE_IN_HZ * binNo / (bufferSize / 2)
-                val freq2 = SAMPLING_RATE_IN_HZ * binNo2 / (bufferSize / 2)
-                val freq3 = SAMPLING_RATE_IN_HZ * binNo3 / (bufferSize / 2)
+//                val freq = SAMPLING_RATE_IN_HZ * binNo / (bufferSize / 2)
+                val freq = binNo
                 Log.i("freq","" + freq + "Hz");
-                Log.i("freq","" + freq2 + "Hz (2)");
-                Log.i("freq","" + freq3 + "Hz (3)");
-                Log.i("freq","---");
-                return arrayOf(freq, freq2, freq3)
+                return freq
             }
         }
     }
