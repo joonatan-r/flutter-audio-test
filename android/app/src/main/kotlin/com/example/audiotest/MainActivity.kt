@@ -92,12 +92,18 @@ class MainActivity : FlutterActivity() {
                 startRecording()
             }
             val r = object : Runnable {
+                var counter = 0;
+                var slowUpdate = "-\n-\n-\n"
                 @SuppressLint("DefaultLocale")
                 override fun run() {
                     handler.post {
-                        eventSink?.success(
+                        counter++;
+                        val s =
                             "${sampleToHz(data.get())}\n${sampleToHz(data2.get())}\n${sampleToHz(data3.get())}"
-                            )
+                        if (counter % 10 == 0) {
+                            slowUpdate = s
+                        }
+                        eventSink?.success("$slowUpdate\n\n$s")
                     }
                     handler.postDelayed(this, 100)
 
