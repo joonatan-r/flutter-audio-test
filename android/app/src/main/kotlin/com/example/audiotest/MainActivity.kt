@@ -19,7 +19,6 @@ import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.cos
-import kotlin.math.sqrt
 
 class MainActivity : FlutterActivity() {
 
@@ -88,17 +87,25 @@ class MainActivity : FlutterActivity() {
             eventSink = events
             val r = object : Runnable {
                 var counter = 0
+                @SuppressLint("DefaultLocale")
                 override fun run() {
                     handler.post {
                         counter++
-                        eventSink?.success("${data.get()}")
+                        val freq = (1 / data.get().toDouble()) * SAMPLING_RATE_IN_HZ
+                        val result =
+                            if (!freq.isFinite() || freq.toInt() == SAMPLING_RATE_IN_HZ) {
+                                "-"
+                            } else {
+                                String.format("%.2f", freq)
+                            }
+                        eventSink?.success(result)
                     }
                     handler.postDelayed(this, 100)
 
 //                    if (counter > 600 && recordingInProgress.get()) {
 //                        stopRecording()
 //                    }
-                    if (counter > 21 && !recordingInProgress.get()) {
+                    if (counter > 11 && !recordingInProgress.get()) {
                         startRecording()
                     }
                 }
@@ -157,8 +164,7 @@ class MainActivity : FlutterActivity() {
                         }
                         val shortBuffer = ShortArray(bufferSize)
                         buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortBuffer)
-                        val freq = fft(shortBuffer)
-                        data.set(freq)
+                        data.set(findLargestMagnitudeSample(shortBuffer))
                         buffer.clear()
                         Thread.sleep(20)
                     }
@@ -178,10 +184,9 @@ class MainActivity : FlutterActivity() {
             }
 
             // https://stackoverflow.com/questions/21799625/low-pass-android-pcm-audio-data
-
             // https://stackoverflow.com/questions/4225432/how-to-compute-frequency-of-data-using-fft
 
-            private fun fft(data: ShortArray): Int {
+            private fun findLargestMagnitudeSample(data: ShortArray): Int {
                 val fftBuffer = DoubleArray(bufferSize * 2)
                 val magnitude = DoubleArray(bufferSize)
                 var maxVal = 0.toDouble()
@@ -208,10 +213,7 @@ class MainActivity : FlutterActivity() {
                         binNo = i
                     }
                 }
-//                val freq = SAMPLING_RATE_IN_HZ * binNo / (bufferSize / 2)
-                val freq = binNo
-                Log.i("freq","" + freq + "Hz");
-                return freq
+                return binNo
             }
         }
     }
