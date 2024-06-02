@@ -78,36 +78,32 @@ class MainActivity : FlutterActivity() {
             AudioRecord.getMinBufferSize(
                 SAMPLING_RATE_IN_HZ, CHANNEL_CONFIG, AUDIO_FORMAT
             ) * BUFFER_SIZE_FACTOR
+        private const val MAX_HZ_TO_DISPLAY = 4000
         val recordingInProgress = AtomicBoolean(false)
         var recorder: AudioRecord? = null
         private var recordingThread: Thread? = null
         val data = AtomicInteger()
+        val data2 = AtomicInteger()
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
+            if (!recordingInProgress.get()) {
+                startRecording()
+            }
             val r = object : Runnable {
-                var counter = 0
                 @SuppressLint("DefaultLocale")
                 override fun run() {
                     handler.post {
-                        counter++
-                        val freq = (1 / data.get().toDouble()) * SAMPLING_RATE_IN_HZ
-                        val result =
-                            if (!freq.isFinite() || freq.toInt() == SAMPLING_RATE_IN_HZ) {
-                                "-"
-                            } else {
-                                String.format("%.2f", freq)
-                            }
-                        eventSink?.success(result)
+                        eventSink?.success("${sampleToHz(data.get())}\n${sampleToHz(data2.get())}")
                     }
                     handler.postDelayed(this, 100)
 
 //                    if (counter > 600 && recordingInProgress.get()) {
 //                        stopRecording()
 //                    }
-                    if (counter > 11 && !recordingInProgress.get()) {
-                        startRecording()
-                    }
+//                    if (counter > 11 && !recordingInProgress.get()) {
+//                        startRecording()
+//                    }
                 }
             }
             handler.postDelayed(r, 100)
@@ -115,6 +111,15 @@ class MainActivity : FlutterActivity() {
 
         override fun onCancel(arguments: Any?) {
             eventSink = null
+        }
+
+        private fun sampleToHz(sample: Int): String {
+            val freq = (1 / sample.toDouble()) * SAMPLING_RATE_IN_HZ
+            return if (!freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
+                    "-"
+                } else {
+                    String.format("%.2f", freq)
+                }
         }
 
         fun startRecording() {
@@ -148,8 +153,8 @@ class MainActivity : FlutterActivity() {
         class RecordingRunnable : Runnable {
 
             private val bufferSize = BUFFER_SIZE / 2
-            private val fft1d = DoubleFFT_1D(bufferSize.toLong())
-            private val fft1dForInv = DoubleFFT_1D((bufferSize / 2).toLong())
+            private val fft1d = DoubleFFT_1D(BUFFER_SIZE.toLong())
+            private val fft1dForInv = DoubleFFT_1D((bufferSize).toLong())
 
             override fun run() {
                 try {
@@ -164,7 +169,9 @@ class MainActivity : FlutterActivity() {
                         }
                         val shortBuffer = ShortArray(bufferSize)
                         buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortBuffer)
-                        data.set(findLargestMagnitudeSample(shortBuffer))
+                        val (first, second) = findLargestMagnitudeSample(shortBuffer)
+                        data.set(first)
+                        data2.set(second)
                         buffer.clear()
                         Thread.sleep(20)
                     }
@@ -186,11 +193,13 @@ class MainActivity : FlutterActivity() {
             // https://stackoverflow.com/questions/21799625/low-pass-android-pcm-audio-data
             // https://stackoverflow.com/questions/4225432/how-to-compute-frequency-of-data-using-fft
 
-            private fun findLargestMagnitudeSample(data: ShortArray): Int {
-                val fftBuffer = DoubleArray(bufferSize * 2)
-                val magnitude = DoubleArray(bufferSize)
+            private fun findLargestMagnitudeSample(data: ShortArray): Array<Int> {
+                val fftBuffer = DoubleArray(bufferSize * 4) // pad last half with 0s?
+                val magnitude = DoubleArray(bufferSize * 2)
                 var maxVal = 0.toDouble()
+                var maxVal2 = 0.toDouble()
                 var binNo = 0
+                var binNo2 = 0
 
                 for (i in 0 until bufferSize) {
                     val windowVal = 1 - cos(i * 2 * Math.PI / (data.size - 1))
@@ -200,7 +209,7 @@ class MainActivity : FlutterActivity() {
                 }
                 fft1d.complexForward(fftBuffer)
 
-                for (i in 0 until bufferSize) {
+                for (i in 0 until bufferSize * 2) {
                     val real = fftBuffer[2 * i]
                     val imaginary = fftBuffer[2 * i + 1]
                     magnitude[i] = real * real + imaginary * imaginary
@@ -213,7 +222,13 @@ class MainActivity : FlutterActivity() {
                         binNo = i
                     }
                 }
-                return binNo
+                for (i in magnitude.indices) {
+                    if (magnitude[i] < maxVal && magnitude[i] > maxVal2) {
+                        maxVal2 = magnitude[i]
+                        binNo2 = i
+                    }
+                }
+                return arrayOf(binNo, binNo2)
             }
         }
     }

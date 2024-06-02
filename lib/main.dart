@@ -22,6 +22,7 @@ class MyApp extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
       ),
       backgroundColor: Colors.grey.shade100,
       body: const MyHomePage(),
@@ -40,7 +41,6 @@ class _MyHomePageState extends State<MyHomePage> {
   static const platformMethods = MethodChannel(methodChannel);
   static const platformEvents = EventChannel(eventChannel);
   StreamBuilder<String>? _streamBuilder;
-  int _counter = 0;
 
   @override
   void initState() {
@@ -51,18 +51,13 @@ class _MyHomePageState extends State<MyHomePage> {
         if (snapshot.hasData) {
           return Text(
             '${snapshot.data}',
+            style: const TextStyle(fontSize: 20),
           );
         } else {
           return const CircularProgressIndicator();
         }
       },
     );
-  }
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
   }
 
   Future<void> _getData() async {
@@ -85,31 +80,18 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // const Text(
-            //   'You have pushed the button this many times:',
-            // ),
-            // Text(
-            //   '$_counter',
-            //   style: Theme.of(context).textTheme.headlineMedium,
-            // ),
             _streamBuilder ?? const CircularProgressIndicator(),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _incrementCounter();
           _getData();
         },
-        tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
     );
