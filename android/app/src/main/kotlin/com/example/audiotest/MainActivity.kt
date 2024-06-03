@@ -206,7 +206,7 @@ class MainActivity : FlutterActivity() {
 
             private fun findLargestMagnitudeSample(data: ShortArray): Array<Int> {
                 val fftBuffer = DoubleArray(bufferSize * 4) // pad last half with 0s?
-                val magnitude = DoubleArray(bufferSize * 2)
+                val magnitude = DoubleArray(bufferSize * 4)
                 var maxVal = 0.toDouble()
                 var maxVal2 = 0.toDouble()
                 var maxVal3 = 0.toDouble()
@@ -225,28 +225,47 @@ class MainActivity : FlutterActivity() {
                 for (i in 0 until bufferSize * 2) {
                     val real = fftBuffer[2 * i]
                     val imaginary = fftBuffer[2 * i + 1]
-                    magnitude[i] = real * real + imaginary * imaginary
+                    magnitude[2 * i] = real * real + imaginary * imaginary
+                    magnitude[2 * i + 1] = 0.toDouble()
                 }
                 fft1dForInv.complexInverse(magnitude, false)
 
                 for (i in magnitude.indices) {
-                    if (magnitude[i] > maxVal) {
+                    if (
+                        magnitude[i] > maxVal
+                            // && magnitude[i] > 500_000_000_000
+                            && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ < 700
+                            && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ > 30
+                    ) {
                         maxVal = magnitude[i]
                         binNo = i
                     }
                 }
-                for (i in magnitude.indices) {
-                    if (magnitude[i] < maxVal && magnitude[i] > maxVal2) {
-                        maxVal2 = magnitude[i]
-                        binNo2 = i
-                    }
-                }
-                for (i in magnitude.indices) {
-                    if (magnitude[i] < maxVal && magnitude[i] < maxVal2 && magnitude[i] > maxVal3) {
-                        maxVal3 = magnitude[i]
-                        binNo3 = i
-                    }
-                }
+                // for (i in magnitude.indices) {
+                //     if (
+                //         magnitude[i] < maxVal
+                //             && magnitude[i] > maxVal2
+                //             && magnitude[i] > 500_000_000_000
+                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ < 700
+                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ > 30
+                //     ) {
+                //         maxVal2 = magnitude[i]
+                //         binNo2 = i
+                //     }
+                // }
+                // for (i in magnitude.indices) {
+                //     if (
+                //         magnitude[i] < maxVal
+                //             && magnitude[i] < maxVal2
+                //             && magnitude[i] > maxVal3
+                //             && magnitude[i] > 500_000_000_000
+                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ < 700
+                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ > 30
+                //     ) {
+                //         maxVal3 = magnitude[i]
+                //         binNo3 = i
+                //     }
+                // }
                 return arrayOf(binNo, binNo2, binNo3)
             }
         }
