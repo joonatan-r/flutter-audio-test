@@ -101,7 +101,7 @@ class MainActivity : FlutterActivity() {
                         counter++;
                         val s =
                             "${sampleToHz(data.get())}\n${sampleToHz(data2.get())}\n${sampleToHz(data3.get())}"
-                        if (counter % 10 == 0 || slowUpdate == "-\n-\n-") {
+                        if (counter % 15 == 0 || slowUpdate == "-\n-\n-") {
                             slowUpdate = s
                         }
                         eventSink?.success("$slowUpdate\n\n$s")
@@ -128,7 +128,7 @@ class MainActivity : FlutterActivity() {
             return if (!freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
                     "-"
                 } else {
-                    "${String.format("%.2f", freq)} (${Freqs.getClosest(freq)})"
+                    "${String.format("%.2f", freq).padEnd(7)} (${Freqs.getClosest(freq)})"
                 }
         }
 

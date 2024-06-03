@@ -51,7 +51,10 @@ class _MyHomePageState extends State<MyHomePage> {
         if (snapshot.hasData) {
           return Text(
             '${snapshot.data}',
-            style: const TextStyle(fontSize: 20),
+            style: const TextStyle(
+              fontSize: 16,
+              fontFamily: "monospace"
+            ),
           );
         } else {
           return const CircularProgressIndicator();
@@ -80,13 +83,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            _streamBuilder ?? const CircularProgressIndicator(),
-          ],
-        ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Container(
+            padding: const EdgeInsets.only(left: 40),
+            child: _streamBuilder ?? const CircularProgressIndicator(),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
