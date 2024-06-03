@@ -86,8 +86,6 @@ class MainActivity : FlutterActivity() {
         private var recordingThread: Thread? = null
         val listening = AtomicBoolean()
         val data = AtomicInteger()
-        val data2 = AtomicInteger()
-        val data3 = AtomicInteger()
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
@@ -101,9 +99,7 @@ class MainActivity : FlutterActivity() {
                 override fun run() {
                     handler.post {
                         counter++;
-                        val s =
-                            "${sampleToHz(data.get())}"
-                            // "${sampleToHz(data.get())}\n${sampleToHz(data2.get())}\n${sampleToHz(data3.get())}"
+                        val s = "${sampleToHz(data.get())}"
                         if (counter % 10 == 0 || slowUpdate == "-") {
                             slowUpdate = s
                         }
@@ -181,10 +177,7 @@ class MainActivity : FlutterActivity() {
                         }
                         val shortBuffer = ShortArray(bufferSize)
                         buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortBuffer)
-                        val (first, second, third) = findLargestMagnitudeSample(shortBuffer)
-                        data.set(first)
-                        data2.set(second)
-                        data3.set(third)
+                        data.set(findLargestMagnitudeSample(shortBuffer))
                         buffer.clear()
                         Thread.sleep(20)
                     }
@@ -206,20 +199,15 @@ class MainActivity : FlutterActivity() {
             // https://stackoverflow.com/questions/21799625/low-pass-android-pcm-audio-data
             // https://stackoverflow.com/questions/4225432/how-to-compute-frequency-of-data-using-fft
 
-            private fun findLargestMagnitudeSample(data: ShortArray): Array<Int> {
+            private fun findLargestMagnitudeSample(data: ShortArray): Int {
                 val fftBuffer = DoubleArray(bufferSize * 4) // pad last half with 0s?
                 val magnitude = DoubleArray(bufferSize * 4)
                 var maxVal = 0.toDouble()
-                var maxVal2 = 0.toDouble()
-                var maxVal3 = 0.toDouble()
-                var binNo = 0
-                var binNo2 = 0
-                var binNo3 = 0
+                var bin = 0
 
                 for (i in 0 until bufferSize) {
                     val windowVal = 1 - cos(i * 2 * Math.PI / (data.size - 1))
-                    data[i] = (data[i] * windowVal).toInt().toShort()
-                    fftBuffer[2 * i] = data[i].toDouble()
+                    fftBuffer[2 * i] = data[i] * windowVal
                     fftBuffer[2 * i + 1] = 0.toDouble()
                 }
                 fft1d.complexForward(fftBuffer)
@@ -240,35 +228,10 @@ class MainActivity : FlutterActivity() {
                             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ > 30
                     ) {
                         maxVal = magnitude[i]
-                        binNo = i
+                        bin = i
                     }
                 }
-                // for (i in magnitude.indices) {
-                //     if (
-                //         magnitude[i] < maxVal
-                //             && magnitude[i] > maxVal2
-                //             && magnitude[i] > 500_000_000_000
-                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ < 700
-                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ > 30
-                //     ) {
-                //         maxVal2 = magnitude[i]
-                //         binNo2 = i
-                //     }
-                // }
-                // for (i in magnitude.indices) {
-                //     if (
-                //         magnitude[i] < maxVal
-                //             && magnitude[i] < maxVal2
-                //             && magnitude[i] > maxVal3
-                //             && magnitude[i] > 500_000_000_000
-                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ < 700
-                //             && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ > 30
-                //     ) {
-                //         maxVal3 = magnitude[i]
-                //         binNo3 = i
-                //     }
-                // }
-                return arrayOf(binNo, binNo2, binNo3)
+                return bin
             }
         }
     }
