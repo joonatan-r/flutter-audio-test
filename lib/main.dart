@@ -63,10 +63,10 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Future<void> _getData() async {
+  Future<void> _toggle() async {
     String? data;
     try {
-      final result = await platformMethods.invokeMethod<String>('getData');
+      final result = await platformMethods.invokeMethod<String>('toggle');
       data = result;
       debugPrint(data);
     } on PlatformException catch (e) {
@@ -94,9 +94,9 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _getData();
+          _toggle();
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.music_note),
       ),
     );
   }

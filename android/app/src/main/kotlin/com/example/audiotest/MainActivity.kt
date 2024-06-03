@@ -42,8 +42,8 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             METHOD_CHANNEL
         ).setMethodCallHandler { call, result ->
-            if (call.method == "getData") {
-                val data = getData()
+            if (call.method == "toggle") {
+                val data = toggleListening()
 
                 if (data != "") {
                     result.success(data)
@@ -56,8 +56,9 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun getData(): String {
-        return "This is a test"
+    private fun toggleListening(): String {
+        StreamHandler.listening.set(!StreamHandler.listening.get()); // not proper but whatever
+        return "toggle"
     }
 
     @SuppressLint("MissingPermission")
@@ -83,6 +84,7 @@ class MainActivity : FlutterActivity() {
         val recordingInProgress = AtomicBoolean(false)
         var recorder: AudioRecord? = null
         private var recordingThread: Thread? = null
+        val listening = AtomicBoolean()
         val data = AtomicInteger()
         val data2 = AtomicInteger()
         val data3 = AtomicInteger()
@@ -94,14 +96,15 @@ class MainActivity : FlutterActivity() {
             }
             val r = object : Runnable {
                 var counter = 0;
-                var slowUpdate = "-\n-\n-"
+                var slowUpdate = "-"
                 @SuppressLint("DefaultLocale")
                 override fun run() {
                     handler.post {
                         counter++;
                         val s =
-                            "${sampleToHz(data.get())}\n${sampleToHz(data2.get())}\n${sampleToHz(data3.get())}"
-                        if (counter % 15 == 0 || slowUpdate == "-\n-\n-") {
+                            "${sampleToHz(data.get())}"
+                            // "${sampleToHz(data.get())}\n${sampleToHz(data2.get())}\n${sampleToHz(data3.get())}"
+                        if (counter % 10 == 0 || slowUpdate == "-") {
                             slowUpdate = s
                         }
                         eventSink?.success("$slowUpdate\n\n$s")
@@ -125,7 +128,7 @@ class MainActivity : FlutterActivity() {
 
         private fun sampleToHz(sample: Int): String {
             val freq = (1 / sample.toDouble()) * SAMPLING_RATE_IN_HZ
-            return if (!freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
+            return if (!listening.get() || !freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
                     "-"
                 } else {
                     "${String.format("%.2f", freq).padEnd(7)} (${Freqs.getClosest(freq)})"
@@ -164,7 +167,6 @@ class MainActivity : FlutterActivity() {
 
             private val bufferSize = BUFFER_SIZE / 2
             private val fft1d = DoubleFFT_1D(BUFFER_SIZE.toLong())
-            private val fft1dForInv = DoubleFFT_1D((bufferSize).toLong())
 
             override fun run() {
                 try {
@@ -228,7 +230,7 @@ class MainActivity : FlutterActivity() {
                     magnitude[2 * i] = real * real + imaginary * imaginary
                     magnitude[2 * i + 1] = 0.toDouble()
                 }
-                fft1dForInv.complexInverse(magnitude, false)
+                fft1d.complexInverse(magnitude, false)
 
                 for (i in magnitude.indices) {
                     if (
