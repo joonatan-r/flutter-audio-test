@@ -123,7 +123,7 @@ class MainActivity : FlutterActivity() {
         }
 
         private fun sampleToHz(sample: Int): String {
-            val freq = (SAMPLING_RATE_IN_HZ / sample.toDouble())
+            val freq = (2 * SAMPLING_RATE_IN_HZ / sample.toDouble())
             return if (!listening.get() || !freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
                     "-"
                 } else {
@@ -224,8 +224,8 @@ class MainActivity : FlutterActivity() {
                     if (
                         magnitude[i] > maxVal
                             // && magnitude[i] > 500_000_000_000
-                            && (SAMPLING_RATE_IN_HZ / i.toDouble()) < 700
-                            && (SAMPLING_RATE_IN_HZ / i.toDouble()) > 30
+                            && (2 * SAMPLING_RATE_IN_HZ / i.toDouble()) < 700
+                            && (2 * SAMPLING_RATE_IN_HZ / i.toDouble()) > 30
                     ) {
                         maxVal = magnitude[i]
                         bin = i
@@ -278,7 +278,7 @@ object Freqs {
             "C5"                 to 523.2511,
             "B4"                 to 493.8833,
             "A#4/Bb4"            to 466.1638,
-            "A4 A440"            to 440.0000,
+            "A4"                 to 440.0000,
             "G#4/Ab4"            to 415.3047,
             "G4"                 to 391.9954,
             "F#4/Gb4"            to 369.9944,
