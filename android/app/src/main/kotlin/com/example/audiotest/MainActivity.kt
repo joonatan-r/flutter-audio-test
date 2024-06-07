@@ -123,7 +123,7 @@ class MainActivity : FlutterActivity() {
         }
 
         private fun sampleToHz(sample: Int): String {
-            val freq = (1 / sample.toDouble()) * SAMPLING_RATE_IN_HZ
+            val freq = (SAMPLING_RATE_IN_HZ / sample.toDouble())
             return if (!listening.get() || !freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
                     "-"
                 } else {
@@ -179,7 +179,7 @@ class MainActivity : FlutterActivity() {
                         buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortBuffer)
                         data.set(findLargestMagnitudeSample(shortBuffer))
                         buffer.clear()
-                        Thread.sleep(20)
+                        Thread.sleep(100)
                     }
                 } catch (e: IOException) {
                     Log.e("Recorder", "Writing of recorded audio failed", e)
@@ -224,8 +224,8 @@ class MainActivity : FlutterActivity() {
                     if (
                         magnitude[i] > maxVal
                             // && magnitude[i] > 500_000_000_000
-                            && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ < 700
-                            && (1 / i.toDouble()) * SAMPLING_RATE_IN_HZ > 30
+                            && (SAMPLING_RATE_IN_HZ / i.toDouble()) < 700
+                            && (SAMPLING_RATE_IN_HZ / i.toDouble()) > 30
                     ) {
                         maxVal = magnitude[i]
                         bin = i

@@ -96,6 +96,8 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           _toggle();
         },
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         child: const Icon(Icons.music_note),
       ),
     );
