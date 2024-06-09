@@ -85,43 +85,19 @@ class MainActivity : FlutterActivity() {
         var recorder: AudioRecord? = null
         private var recordingThread: Thread? = null
         val listening = AtomicBoolean()
-        val data = AtomicInteger()
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
             if (!recordingInProgress.get()) {
                 startRecording()
             }
-            val r = object : Runnable {
-                var counter = 0;
-                var slowUpdate = "-"
-                @SuppressLint("DefaultLocale")
-                override fun run() {
-                    handler.post {
-                        counter++;
-                        val s = "${sampleToHz(data.get())}"
-                        if (counter % 10 == 0 || slowUpdate == "-") {
-                            slowUpdate = s
-                        }
-                        eventSink?.success("$slowUpdate\n\n$s")
-                    }
-                    handler.postDelayed(this, 100)
-
-//                    if (counter > 600 && recordingInProgress.get()) {
-//                        stopRecording()
-//                    }
-//                    if (counter > 11 && !recordingInProgress.get()) {
-//                        startRecording()
-//                    }
-                }
-            }
-            handler.postDelayed(r, 100)
         }
 
         override fun onCancel(arguments: Any?) {
             eventSink = null
         }
 
+        @SuppressLint("DefaultLocale")
         private fun sampleToHz(sample: Int): String {
             val freq = (2 * SAMPLING_RATE_IN_HZ / sample.toDouble())
             return if (!listening.get() || !freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
@@ -131,7 +107,7 @@ class MainActivity : FlutterActivity() {
                 }
         }
 
-        fun startRecording() {
+        private fun startRecording() {
             println("__startRecording__")
             recorder = AudioRecord(
                 MediaRecorder.AudioSource.DEFAULT,
@@ -147,7 +123,7 @@ class MainActivity : FlutterActivity() {
             recordingThread?.start()
         }
 
-        fun stopRecording() {
+        private fun stopRecording() {
             println("__stopRecording__")
             if (null == recorder) {
                 return
@@ -160,14 +136,15 @@ class MainActivity : FlutterActivity() {
         }
 
         class RecordingRunnable : Runnable {
-
             private val bufferSize = BUFFER_SIZE / 2
             private val fft1d = DoubleFFT_1D(BUFFER_SIZE.toLong())
+            private var counter = 0;
+            private var slowUpdate = "-"
 
             override fun run() {
                 try {
                     val buffer = ByteBuffer.allocateDirect(BUFFER_SIZE)
-                    while (recordingInProgress.get()) {
+                    if (recordingInProgress.get()) {
                         val result: Int = recorder?.read(buffer, BUFFER_SIZE) ?: -1
                         if (result < 0) {
                             throw RuntimeException(
@@ -177,9 +154,16 @@ class MainActivity : FlutterActivity() {
                         }
                         val shortBuffer = ShortArray(bufferSize)
                         buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shortBuffer)
-                        data.set(findLargestMagnitudeSample(shortBuffer))
                         buffer.clear()
-                        Thread.sleep(100)
+                        handler.post {
+                            counter++;
+                            val s = sampleToHz(findLargestMagnitudeSample(shortBuffer))
+                            if (counter % 10 == 0 || slowUpdate == "-") {
+                                slowUpdate = s
+                            }
+                            eventSink?.success("$slowUpdate\n\n$s")
+                        }
+                        handler.postDelayed(this, 100)
                     }
                 } catch (e: IOException) {
                     Log.e("Recorder", "Writing of recorded audio failed", e)
