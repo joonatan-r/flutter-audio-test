@@ -18,6 +18,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.cos
 import kotlin.math.abs
 
@@ -42,8 +43,9 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             METHOD_CHANNEL
         ).setMethodCallHandler { call, result ->
-            if (call.method == "toggle") {
-                val data = toggleListening()
+            val args = call.method.split(";").toTypedArray()
+            if (args[0] == "toggle" && args.size >= 4) {
+                val data = toggleListening(args)
 
                 if (data != "") {
                     result.success(data)
@@ -56,7 +58,19 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun toggleListening(): String {
+    private fun toggleListening(args: Array<String>): String {
+        val minMagnitude = args[1].toIntOrNull()
+        val updateRate = args[2].toIntOrNull()
+        val numFreqs = args[3].toIntOrNull()
+        if (minMagnitude != null) {
+
+        }
+        if (updateRate != null) {
+
+        }
+        if (numFreqs != null) {
+
+        }
         StreamHandler.listening.set(!StreamHandler.listening.get()); // not proper but whatever
         return "toggle"
     }
@@ -85,6 +99,9 @@ class MainActivity : FlutterActivity() {
         var recorder: AudioRecord? = null
         private var recordingThread: Thread? = null
         val listening = AtomicBoolean()
+        val minMagnitude = AtomicLong(500_000_000_000)
+        val updateRate = AtomicInteger(10)
+        val numFreqs = AtomicInteger(2) // TODO
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
@@ -158,7 +175,7 @@ class MainActivity : FlutterActivity() {
                         handler.post {
                             counter++;
                             val s = sampleToHz(findLargestMagnitudeSample(shortBuffer))
-                            if (counter % 10 == 0 || slowUpdate == "-") {
+                            if (counter % updateRate.get() == 0 || slowUpdate == "-") {
                                 slowUpdate = s
                             }
                             eventSink?.success("$slowUpdate\n\n$s")
@@ -207,7 +224,7 @@ class MainActivity : FlutterActivity() {
                 for (i in magnitude.indices) {
                     if (
                         magnitude[i] > maxVal
-                            // && magnitude[i] > 500_000_000_000
+                            && magnitude[i] > minMagnitude.get()
                             && (2 * SAMPLING_RATE_IN_HZ / i.toDouble()) < 700
                             && (2 * SAMPLING_RATE_IN_HZ / i.toDouble()) > 30
                     ) {
