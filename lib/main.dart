@@ -42,14 +42,14 @@ class _MyHomePageState extends State<MyHomePage> {
   static const platformEvents = EventChannel(eventChannel);
   StreamBuilder<String>? _streamBuilder;
   bool _recording = false;
+  bool _showValue = false;
+  bool _showBrackets = false;
   final TextEditingController _controllerFontSize =
       TextEditingController(text: '16');
   final TextEditingController _controllerMinMagnitude =
       TextEditingController(text: '500000000000');
   final TextEditingController _controllerUpdateRate =
       TextEditingController(text: '10');
-  final TextEditingController _controllerNumFreqs =
-      TextEditingController(text: '2');
 
   @override
   void initState() {
@@ -78,8 +78,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _toggle() async {
     String? data;
     try {
-      final result = await platformMethods.invokeMethod<String>(
-          'toggle;${_controllerMinMagnitude.text};${_controllerUpdateRate.text};${_controllerNumFreqs.text}');
+      final result = await platformMethods
+          .invokeMethod<String>('toggle;${_controllerMinMagnitude.text};'
+              '${_controllerUpdateRate.text};'
+              '$_showValue;'
+              '$_showBrackets');
       data = result;
       debugPrint(data);
       setState(() {
@@ -102,73 +105,84 @@ class _MyHomePageState extends State<MyHomePage> {
     //   onPressed: () {},
     // );
 
-    AlertDialog alert = AlertDialog(
-      title: const Text("Options"),
-      content: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: TextField(
-              controller: _controllerFontSize,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Font size',
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: TextField(
-              controller: _controllerMinMagnitude,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Min magnitude',
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: TextField(
-              controller: _controllerUpdateRate,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Update rate',
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: TextField(
-              controller: _controllerNumFreqs,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Number of frequencies',
-              ),
-            ),
-          ),
-        ],
-      ),
-      // actions: [
-      //   okButton,
-      // ],
-    );
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return alert;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Options"),
+              content: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    child: TextField(
+                      controller: _controllerFontSize,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Font size',
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    child: TextField(
+                      controller: _controllerMinMagnitude,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Min magnitude',
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    child: TextField(
+                      controller: _controllerUpdateRate,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Update rate',
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    child: SwitchListTile(
+                      title: const Text('Show value'),
+                      value: _showValue,
+                      onChanged: (bool value) {
+                        debugPrint('change to $value');
+                        setState(() {
+                          debugPrint('updating to $value');
+                          _showValue = value;
+                        });
+                      },
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    child: SwitchListTile(
+                      title: const Text('Show brackets'),
+                      value: _showBrackets,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _showBrackets = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              // actions: [
+              //   okButton,
+              // ],
+            );
+          },
+        );
       },
     );
   }
-
-  // TODO:
-  // long press button open dialog with inputs for (font,)
-  // min sound magnitude to consider, steps to skip update,
-  // and number of freqs to list. Pass as part of method string.
-  // Also in returned stream show brackets how close to freq for
-  // easier reading.
 
   @override
   Widget build(BuildContext context) {

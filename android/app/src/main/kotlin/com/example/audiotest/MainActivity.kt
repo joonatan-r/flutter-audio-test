@@ -44,7 +44,7 @@ class MainActivity : FlutterActivity() {
             METHOD_CHANNEL
         ).setMethodCallHandler { call, result ->
             val args = call.method.split(";").toTypedArray()
-            if (args[0] == "toggle" && args.size >= 4) {
+            if (args[0] == "toggle" && args.size >= 5) {
                 val data = toggleListening(args)
 
                 if (data != "") {
@@ -61,15 +61,19 @@ class MainActivity : FlutterActivity() {
     private fun toggleListening(args: Array<String>): String {
         val minMagnitude = args[1].toIntOrNull()
         val updateRate = args[2].toIntOrNull()
-        val numFreqs = args[3].toIntOrNull()
+        val showValues = args[3].toBooleanStrictOrNull()
+        val showBrackets = args[4].toBooleanStrictOrNull()
         if (minMagnitude != null) {
-
+            StreamHandler.minMagnitude.set(minMagnitude.toLong())
         }
         if (updateRate != null) {
-
+            StreamHandler.updateRate.set(updateRate)
         }
-        if (numFreqs != null) {
-
+        if (showValues != null) {
+            StreamHandler.showValues.set(showValues)
+        }
+        if (showBrackets != null) {
+            StreamHandler.showBrackets.set(showBrackets)
         }
         StreamHandler.listening.set(!StreamHandler.listening.get()); // not proper but whatever
         return "toggle"
@@ -101,7 +105,8 @@ class MainActivity : FlutterActivity() {
         val listening = AtomicBoolean()
         val minMagnitude = AtomicLong(500_000_000_000)
         val updateRate = AtomicInteger(10)
-        val numFreqs = AtomicInteger(2) // TODO
+        val showValues = AtomicBoolean()
+        val showBrackets = AtomicBoolean() // TODO
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
@@ -120,7 +125,9 @@ class MainActivity : FlutterActivity() {
             return if (!listening.get() || !freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
                     "-"
                 } else {
-                    "${String.format("%.2f", freq).padEnd(7)} (${Freqs.getClosest(freq)})"
+                    "${String.format("%.2f", freq).padEnd(7)} (${
+                        Freqs.getClosest(freq, showValues.get())
+                    })"
                 }
         }
 
@@ -178,7 +185,7 @@ class MainActivity : FlutterActivity() {
                             if (counter % updateRate.get() == 0 || slowUpdate == "-") {
                                 slowUpdate = s
                             }
-                            eventSink?.success("$slowUpdate\n\n$s")
+                            eventSink?.success(slowUpdate)
                         }
                         handler.postDelayed(this, 100)
                     }
@@ -339,7 +346,8 @@ object Freqs {
             "C0"                 to 16.35160,
         )
 
-    fun getClosest(freq: Double): String {
+    @SuppressLint("DefaultLocale")
+    fun getClosest(freq: Double, showValue: Boolean): String {
         val closest = asMap.entries.minByOrNull { abs(it.value - freq) }
         if (closest == null) {
             return ""
@@ -347,6 +355,6 @@ object Freqs {
         val noteWithoutOctave = closest.key.filter { !it.isDigit() }
         val diffSign = if (freq > closest.value) "+" else "-"
         val diff = String.format("%.2f", abs(freq - closest.value))
-        return "${noteWithoutOctave} ${diffSign} ${diff}"
+        return if (showValue) "$noteWithoutOctave $diffSign $diff" else noteWithoutOctave
     }
 }
