@@ -125,9 +125,11 @@ class MainActivity : FlutterActivity() {
             return if (!listening.get() || !freq.isFinite() || freq > MAX_HZ_TO_DISPLAY) {
                     "-"
                 } else {
-                    "${String.format("%.2f", freq).padEnd(7)} (${
-                        Freqs.getClosest(freq, showValues.get())
-                    })"
+                    if (showValues.get()) {
+                        "${Freqs.getClosest(freq)} (${String.format("%.2f", freq)})"
+                    } else {
+                        Freqs.getClosest(freq)
+                    }
                 }
         }
 
@@ -347,7 +349,7 @@ object Freqs {
         )
 
     @SuppressLint("DefaultLocale")
-    fun getClosest(freq: Double, showValue: Boolean): String {
+    fun getClosest(freq: Double): String {
         val closest = asMap.entries.minByOrNull { abs(it.value - freq) }
         if (closest == null) {
             return ""
@@ -355,6 +357,6 @@ object Freqs {
         val noteWithoutOctave = closest.key.filter { !it.isDigit() }
         val diffSign = if (freq > closest.value) "+" else "-"
         val diff = String.format("%.2f", abs(freq - closest.value))
-        return if (showValue) "$noteWithoutOctave $diffSign $diff" else noteWithoutOctave
+        return "$noteWithoutOctave $diffSign $diff".padEnd(14)
     }
 }

@@ -45,7 +45,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _showValue = false;
   bool _showBrackets = false;
   final TextEditingController _controllerFontSize =
-      TextEditingController(text: '16');
+      TextEditingController(text: '40');
   final TextEditingController _controllerMinMagnitude =
       TextEditingController(text: '500000000000');
   final TextEditingController _controllerUpdateRate =
