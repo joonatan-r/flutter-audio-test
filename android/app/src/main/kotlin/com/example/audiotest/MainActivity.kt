@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.cos
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class MainActivity : FlutterActivity() {
 
@@ -59,12 +60,12 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun toggleListening(args: Array<String>): String {
-        val minMagnitude = args[1].toIntOrNull()
+        val minMagnitude = args[1].toLongOrNull()
         val updateRate = args[2].toIntOrNull()
         val showValues = args[3].toBooleanStrictOrNull()
         val showBrackets = args[4].toBooleanStrictOrNull()
         if (minMagnitude != null) {
-            StreamHandler.minMagnitude.set(minMagnitude.toLong())
+            StreamHandler.minMagnitude.set(minMagnitude)
         }
         if (updateRate != null) {
             StreamHandler.updateRate.set(updateRate)
@@ -106,7 +107,7 @@ class MainActivity : FlutterActivity() {
         val minMagnitude = AtomicLong(500_000_000_000)
         val updateRate = AtomicInteger(10)
         val showValues = AtomicBoolean()
-        val showBrackets = AtomicBoolean() // TODO
+        val showBrackets = AtomicBoolean()
 
         override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
             eventSink = events
@@ -126,9 +127,11 @@ class MainActivity : FlutterActivity() {
                     "-"
                 } else {
                     if (showValues.get()) {
-                        "${Freqs.getClosest(freq)} (${String.format("%.2f", freq)})"
+                        "${Freqs.getClosest(freq, showBrackets.get())} (${
+                            String.format("%.2f", freq)
+                        })"
                     } else {
-                        Freqs.getClosest(freq)
+                        Freqs.getClosest(freq, showBrackets.get())
                     }
                 }
         }
@@ -349,14 +352,38 @@ object Freqs {
         )
 
     @SuppressLint("DefaultLocale")
-    fun getClosest(freq: Double): String {
+    fun getClosest(freq: Double, showBracket: Boolean = false): String {
         val closest = asMap.entries.minByOrNull { abs(it.value - freq) }
         if (closest == null) {
             return ""
         }
+        val brackets = 10
         val noteWithoutOctave = closest.key.filter { !it.isDigit() }
+        var bracketIndication = ""
+        if (showBracket) {
+            // check how many steps (for the desired number of brackets) there are between closest and the given freq
+            if (freq > closest.value) {
+                val nextHigher = asMap.entries.filter { it.value > closest.value }.minByOrNull { abs(it.value - freq) }
+                if (nextHigher != null) {
+                    val step = (nextHigher.value - closest.value) / brackets
+                    val bracket = ((freq - closest.value) / step).roundToInt()
+                    if (bracket != 0) {
+                        bracketIndication = ">".repeat(bracket)
+                    }
+                }
+            } else {
+                val nextLower = asMap.entries.filter { it.value < closest.value }.minByOrNull { abs(it.value - freq) }
+                if (nextLower != null) {
+                    val step = (closest.value - nextLower.value) / brackets
+                    val bracket = ((closest.value - freq) / step).roundToInt()
+                    if (bracket != 0) {
+                        bracketIndication = "<".repeat(bracket)
+                    }
+                }
+            }
+        }
         val diffSign = if (freq > closest.value) "+" else "-"
         val diff = String.format("%.2f", abs(freq - closest.value))
-        return "$noteWithoutOctave $diffSign $diff".padEnd(14)
+        return "$noteWithoutOctave $diffSign $diff $bracketIndication".padEnd(18)
     }
 }

@@ -43,13 +43,13 @@ class _MyHomePageState extends State<MyHomePage> {
   StreamBuilder<String>? _streamBuilder;
   bool _recording = false;
   bool _showValue = false;
-  bool _showBrackets = false;
+  bool _showBrackets = true;
   final TextEditingController _controllerFontSize =
       TextEditingController(text: '40');
   final TextEditingController _controllerMinMagnitude =
-      TextEditingController(text: '500000000000');
+      TextEditingController(text: '50000000000');
   final TextEditingController _controllerUpdateRate =
-      TextEditingController(text: '10');
+      TextEditingController(text: '4');
 
   @override
   void initState() {
