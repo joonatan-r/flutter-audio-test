@@ -45,7 +45,7 @@ class MainActivity : FlutterActivity() {
             METHOD_CHANNEL
         ).setMethodCallHandler { call, result ->
             val args = call.method.split(";").toTypedArray()
-            if (args[0] == "toggle" && args.size >= 5) {
+            if (args[0] == "toggle" && args.size >= 6) {
                 val data = toggleListening(args)
 
                 if (data != "") {
@@ -62,13 +62,17 @@ class MainActivity : FlutterActivity() {
     private fun toggleListening(args: Array<String>): String {
         val minMagnitude = args[1].toLongOrNull()
         val updateRate = args[2].toIntOrNull()
-        val showValues = args[3].toBooleanStrictOrNull()
-        val showBrackets = args[4].toBooleanStrictOrNull()
+        val sampleLength = args[3].toLongOrNull()
+        val showValues = args[4].toBooleanStrictOrNull()
+        val showBrackets = args[5].toBooleanStrictOrNull()
         if (minMagnitude != null) {
             StreamHandler.minMagnitude.set(minMagnitude)
         }
         if (updateRate != null) {
             StreamHandler.updateRate.set(updateRate)
+        }
+        if (sampleLength != null) {
+            StreamHandler.sampleLength.set(sampleLength)
         }
         if (showValues != null) {
             StreamHandler.showValues.set(showValues)
@@ -106,6 +110,7 @@ class MainActivity : FlutterActivity() {
         val listening = AtomicBoolean()
         val minMagnitude = AtomicLong(500_000_000_000)
         val updateRate = AtomicInteger(10)
+        val sampleLength = AtomicLong(100)
         val showValues = AtomicBoolean()
         val showBrackets = AtomicBoolean()
 
@@ -192,7 +197,7 @@ class MainActivity : FlutterActivity() {
                             }
                             eventSink?.success(slowUpdate)
                         }
-                        handler.postDelayed(this, 100)
+                        handler.postDelayed(this, sampleLength.get())
                     }
                 } catch (e: IOException) {
                     Log.e("Recorder", "Writing of recorded audio failed", e)

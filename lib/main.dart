@@ -48,6 +48,8 @@ class _MyHomePageState extends State<MyHomePage> {
       TextEditingController(text: '40');
   final TextEditingController _controllerMinMagnitude =
       TextEditingController(text: '50000000000');
+  final TextEditingController _controllerSampleLength =
+      TextEditingController(text: '100');
   final TextEditingController _controllerUpdateRate =
       TextEditingController(text: '4');
 
@@ -81,6 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final result = await platformMethods
           .invokeMethod<String>('toggle;${_controllerMinMagnitude.text};'
               '${_controllerUpdateRate.text};'
+              '${_controllerSampleLength.text};'
               '$_showValue;'
               '$_showBrackets');
       data = result;
@@ -111,44 +114,52 @@ class _MyHomePageState extends State<MyHomePage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text("Options"),
-              content: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: TextField(
-                      controller: _controllerFontSize,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Font size',
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: TextField(
+                        controller: _controllerFontSize,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Font size',
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: TextField(
-                      controller: _controllerMinMagnitude,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Min magnitude',
+                    Container(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: TextField(
+                        controller: _controllerMinMagnitude,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Min magnitude',
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: TextField(
-                      controller: _controllerUpdateRate,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Update rate',
+                    Container(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: TextField(
+                        controller: _controllerUpdateRate,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Update rate',
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: SwitchListTile(
+                    Container(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: TextField(
+                        controller: _controllerSampleLength,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Sample length',
+                        ),
+                      ),
+                    ),
+                    SwitchListTile(
                       title: const Text('Show value'),
                       value: _showValue,
                       onChanged: (bool value) {
@@ -159,10 +170,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         });
                       },
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    child: SwitchListTile(
+                    SwitchListTile(
                       title: const Text('Show brackets'),
                       value: _showBrackets,
                       onChanged: (bool value) {
@@ -171,8 +179,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         });
                       },
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               // actions: [
               //   okButton,
